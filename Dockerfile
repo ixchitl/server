@@ -1,50 +1,27 @@
-# 为阿里云 ACR 构建简化的 Dockerfile
-#
-# 与官方 docker/Dockerfile 的区别（后者无法在 ACR 上构建）：
-#   - 不依赖 buildx 的 TARGETPLATFORM 变量与 bash 风格变量替换
-#   - 不拉 node:24（BUILD_JS=0 时它只是 mkdir 空目录）
-#   - 运行镜像用 debian:bookworm-slim 而非 unstable 的 debian:sid
-#
-# ── 构建阶段 ──────────────────────────────────────────────
-FROM golang:1.26 AS builder
-
-# 国内网络必需，否则 proxy.golang.org 会超时
-ENV GOPROXY=https://goproxy.cn,direct
-# gotify 用 mattn/go-sqlite3（CGO），必须开
-ENV CGO_ENABLED=1
-
-WORKDIR /src
-
-# 先单独下依赖 —— layer cache 让「改代码重新构建」只重编译不重下载
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . .
-
-# ui/build 被 ui/.gitignore 排除，且这两个文件都是必需的：
-#   index.html    —— //go:embed build/* 编译期要求目录至少有一个文件
-#   manifest.json —— ui.Register() 启动时 box.ReadFile("build/manifest.json")，缺了直接 panic
-# 只造 index.html 会「编译成功但容器启动 panic」。
-RUN mkdir -p ui/build \
- && echo '<html><body>gotify</body></html>' > ui/build/index.html \
- && echo '{"name":"Gotify","short_name":"Gotify","start_url":"/","display":"standalone"}' > ui/build/manifest.json
-
-RUN go build -ldflags="-s -w" -o /gotify-app app.go
-
-# ── 运行阶段 ──────────────────────────────────────────────
-# 不能用 scratch / distroless-static：CGO 动态链接 glibc
+# SWE-Factory state-service 基础镜像（仅运行时依赖，不含任何业务代码）
+# 基础镜像用 debian:bookworm-slim（ACR 托管，实测 0.4s 拉取）
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl tzdata \
- && rm -rf /var/lib/apt/lists/*
+# 两阶段修复 keyring（ACR 托管镜像 keyring 为空，同 swf/gotify 的坑）
+RUN set -eux; \
+    for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list; do \
+      [ -f "$f" ] || continue; \
+      sed -i \
+        -e 's|https\?://deb.debian.org/debian|http://mirrors.aliyun.com/debian|g' \
+        -e 's|https\?://security.debian.org/debian-security|http://mirrors.aliyun.com/debian-security|g' \
+        -e 's|^deb |deb [trusted=yes] |' "$f"; \
+    done; \
+    apt-get -o Acquire::AllowInsecureRepositories=true update; \
+    apt-get install -y --allow-unauthenticated --no-install-recommends \
+        debian-archive-keyring ca-certificates; \
+    for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list; do \
+      [ -f "$f" ] || continue; sed -i 's| \[trusted=yes\]||g' "$f"; done; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends python3 python3-venv; \
+    python3 -m venv /opt/venv; \
+    /opt/venv/bin/pip install -q -i https://mirrors.aliyun.com/pypi/simple/ \
+        fastapi "uvicorn[standard]" sse-starlette; \
+    apt-get clean; rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-COPY --from=builder /gotify-app .
-
-ENV GOTIFY_SERVER_PORT=80 GIN_MODE=release
-EXPOSE 80
-
-# 健康检查交给 K8s readinessProbe（httpGet /health），此处不设 HEALTHCHECK
-ENTRYPOINT ["./gotify-app"]
-CMD ["serve"]
+# 业务代码不在镜像里：比赛现场 ConfigMap 挂 /app（main.py）
+CMD ["/opt/venv/bin/uvicorn", "main:app", "--app-dir", "/app", "--host", "0.0.0.0", "--port", "8080"]
