@@ -19,7 +19,7 @@ APP_TOKEN=$(create_app_token "$ADMIN_TOKEN" "Matrix Test App")
 
 # X1: appToken 发消息 → 200
 echo -n "X1 appToken POST /message..."
-RESP=$(http_post /message '{"message":"hello"}' "$APP_TOKEN")
+RESP=$(http_post /message '{"message":"hello","title":"hello"}' "$APP_TOKEN")
 assert_http_code "$RESP" "200"
 pass "appToken 能发消息"
 

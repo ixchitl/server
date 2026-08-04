@@ -46,7 +46,7 @@ pass "B 访问 A 的应用消息返回 404（不泄露存在性）"
 
 # X3: 消息隔离
 echo -n "X3 消息隔离..."
-http_post /message '{"message":"A private msg"}' "$APP_A_TOKEN" > /dev/null
+http_post /message '{"message":"A private msg","title":"A"}' "$APP_A_TOKEN" > /dev/null
 RESP=$(http_get /message "$TOKEN_B")
 MSG_COUNT=$(get_body "$RESP" | jq -r '.messages | length')
 [ "$MSG_COUNT" = "0" ] || fail "B 不应有消息，实际 $MSG_COUNT"

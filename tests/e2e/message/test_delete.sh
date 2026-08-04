@@ -14,7 +14,7 @@ read -r APP_ID APP_TOKEN <<< "$(create_app "$ADMIN_TOKEN" "Delete Test App")"
 
 # M37: 删全部消息
 echo -n "M37 删全部..."
-for i in 1 2 3 4 5; do http_post /message "{\"message\":\"del $i\"}" "$APP_TOKEN" > /dev/null; done
+for i in 1 2 3 4 5; do http_post /message "{\"message\":\"del $i\",\"title\":\"del\"}" "$APP_TOKEN" > /dev/null; done
 RESP=$(http_delete /message "$ADMIN_TOKEN")
 assert_http_code "$RESP" "200"
 pass "删全部成功"
@@ -28,7 +28,7 @@ pass "已清空"
 
 # M40: 删单条
 echo -n "M40 删单条..."
-RESP=$(http_post /message '{"message":"single"}' "$APP_TOKEN")
+RESP=$(http_post /message '{"message":"single","title":"single"}' "$APP_TOKEN")
 MSG_ID=$(get_body "$RESP" | jq -r '.id')
 RESP=$(http_delete /message/$MSG_ID "$ADMIN_TOKEN")
 assert_http_code "$RESP" "200"
@@ -48,7 +48,7 @@ pass "不存在返回 404"
 
 # M44: 删应用消息
 echo -n "M44 删应用消息..."
-for i in 1 2 3; do http_post /message "{\"message\":\"app del $i\"}" "$APP_TOKEN" > /dev/null; done
+for i in 1 2 3; do http_post /message "{\"message\":\"app del $i\",\"title\":\"app del\"}" "$APP_TOKEN" > /dev/null; done
 RESP=$(http_delete /application/$APP_ID/message "$ADMIN_TOKEN")
 assert_http_code "$RESP" "200"
 RESP=$(http_get /application/$APP_ID/message "$ADMIN_TOKEN")

@@ -36,7 +36,7 @@ pass "旧 token 已失效（401）"
 
 # P28: 新 token 可用
 echo -n "P28 新 token 可用..."
-RESP=$(http_post /message '{"message":"new token works"}' "$NEW_APP_TOKEN")
+RESP=$(http_post /message '{"message":"new token works","title":"new token"}' "$NEW_APP_TOKEN")
 assert_http_code "$RESP" "200"
 assert_json '.message' 'new token works' "$RESP"
 pass "新 token 发消息成功"

@@ -21,7 +21,7 @@ USER_TOKEN=$(get_user_client_token "$USERNAME" "pass123")
 read -r APP_ID APP_TOKEN <<< "$(create_app "$USER_TOKEN" "User Cascade App")"
 
 # 用 app token 发消息
-http_post /message '{"message":"cascade test"}' "$APP_TOKEN" > /dev/null
+http_post /message '{"message":"cascade test","title":"cascade"}' "$APP_TOKEN" > /dev/null
 
 # X1: 删用户 → 应用消失
 echo -n "X1 级联删应用..."
