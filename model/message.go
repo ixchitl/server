@@ -80,8 +80,9 @@ type CreateMessage struct {
 	// required: true
 	// example: **Backup** was successfully finished.
 	Message string `form:"message" query:"message" json:"message" binding:"required"`
-	// The title of the message.
+	// The title of the message. Must not be empty or whitespace only.
 	//
+	// required: true
 	// example: Backup
 	Title string `form:"title" query:"title" json:"title"`
 	// The priority of the message. If unset, then the default priority of the

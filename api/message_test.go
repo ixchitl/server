@@ -401,12 +401,11 @@ func (s *MessageSuite) Test_CreateMessage_WithoutTitle() {
 
 	s.a.CreateMessage(s.ctx)
 
-	msgs, err := s.db.GetMessagesByApplication(8)
-	assert.NoError(s.T(), err)
-	assert.Len(s.T(), msgs, 1)
-	assert.Equal(s.T(), "Application name", msgs[0].Title)
-	assert.Equal(s.T(), 200, s.recorder.Code)
-	assert.Equal(s.T(), "mymessage", s.notifiedMessage.Message)
+	if msgs, err := s.db.GetMessagesByApplication(8); assert.NoError(s.T(), err) {
+		assert.Empty(s.T(), msgs)
+	}
+	assert.Equal(s.T(), 400, s.recorder.Code)
+	assert.Nil(s.T(), s.notifiedMessage)
 }
 
 func (s *MessageSuite) Test_CreateMessage_WithBlankTitle() {
@@ -417,18 +416,33 @@ func (s *MessageSuite) Test_CreateMessage_WithBlankTitle() {
 
 	s.a.CreateMessage(s.ctx)
 
+	if msgs, err := s.db.GetMessagesByApplication(8); assert.NoError(s.T(), err) {
+		assert.Empty(s.T(), msgs)
+	}
+	assert.Equal(s.T(), 400, s.recorder.Code)
+	assert.Nil(s.T(), s.notifiedMessage)
+}
+
+func (s *MessageSuite) Test_CreateMessage_WithWhitespacePaddedTitle() {
+	auth.RegisterApplication(s.ctx, s.db.User(4).NewAppWithTokenAndName(8, "app-token", "Application name"))
+
+	s.ctx.Request = httptest.NewRequest("POST", "/message", strings.NewReader(`{"message": "mymessage", "title": "  x  "}`))
+	s.ctx.Request.Header.Set("Content-Type", "application/json")
+
+	s.a.CreateMessage(s.ctx)
+
 	msgs, err := s.db.GetMessagesByApplication(8)
 	assert.NoError(s.T(), err)
 	assert.Len(s.T(), msgs, 1)
-	assert.Equal(s.T(), "Application name", msgs[0].Title)
+	assert.Equal(s.T(), "  x  ", msgs[0].Title)
 	assert.Equal(s.T(), 200, s.recorder.Code)
-	assert.Equal(s.T(), "mymessage", msgs[0].Message)
+	assert.Equal(s.T(), "  x  ", s.notifiedMessage.Title)
 }
 
 func (s *MessageSuite) Test_CreateMessage_IgnoreID() {
 	auth.RegisterApplication(s.ctx, s.db.User(4).NewAppWithTokenAndName(8, "app-token", "Application name"))
 
-	s.ctx.Request = httptest.NewRequest("POST", "/message", strings.NewReader(`{"message": "mymessage", "id": 1337}`))
+	s.ctx.Request = httptest.NewRequest("POST", "/message", strings.NewReader(`{"message": "mymessage", "title": "mytitle", "id": 1337}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 
 	s.a.CreateMessage(s.ctx)

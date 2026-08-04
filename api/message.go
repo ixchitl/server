@@ -385,7 +385,8 @@ func (a *MessageAPI) CreateMessage(ctx *gin.Context) {
 
 	message.ApplicationID = app.ID
 	if strings.TrimSpace(message.Title) == "" {
-		message.Title = app.Name
+		ctx.AbortWithError(400, errors.New("title is required"))
+		return
 	}
 
 	if message.Priority == nil {

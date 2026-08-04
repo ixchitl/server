@@ -2751,7 +2751,8 @@
       "type": "object",
       "title": "CreateMessage Model",
       "required": [
-        "message"
+        "message",
+        "title"
       ],
       "properties": {
         "appid": {
@@ -2789,7 +2790,7 @@
           "example": 2
         },
         "title": {
-          "description": "The title of the message.",
+          "description": "The title of the message. Must not be empty or whitespace only.",
           "type": "string",
           "x-go-name": "Title",
           "example": "Backup"
