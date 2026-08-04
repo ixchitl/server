@@ -15,8 +15,8 @@ read -r APP1_ID APP1_TOKEN <<< "$(create_app "$ADMIN_TOKEN" "Filter App 1")"
 read -r APP2_ID APP2_TOKEN <<< "$(create_app "$ADMIN_TOKEN" "Filter App 2")"
 
 # 各发 2 条
-for i in 1 2; do http_post /message "{\"message\":\"app1 msg $i\"}" "$APP1_TOKEN" > /dev/null; done
-for i in 1 2; do http_post /message "{\"message\":\"app2 msg $i\"}" "$APP2_TOKEN" > /dev/null; done
+for i in 1 2; do http_post /message "{\"message\":\"app1 msg $i\",\"title\":\"app1\"}" "$APP1_TOKEN" > /dev/null; done
+for i in 1 2; do http_post /message "{\"message\":\"app2 msg $i\",\"title\":\"app2\"}" "$APP2_TOKEN" > /dev/null; done
 
 # M32: 正常获取
 echo -n "M32 获取应用消息..."

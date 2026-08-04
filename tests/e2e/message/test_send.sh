@@ -14,7 +14,7 @@ read -r APP_ID APP_TOKEN <<< "$(create_app "$ADMIN_TOKEN" "Send Test App")"
 
 # M1: appToken 正常发消息
 echo -n "M1 正常发消息..."
-RESP=$(http_post /message '{"message":"hello world"}' "$APP_TOKEN")
+RESP=$(http_post /message '{"message":"hello world","title":"hello"}' "$APP_TOKEN")
 assert_http_code "$RESP" "200"
 assert_json '.message' 'hello world' "$RESP"
 assert_json_not_empty '.id' "$RESP"
@@ -28,33 +28,35 @@ assert_json '.title' 'Alert' "$RESP"
 assert_json '.priority' '5' "$RESP"
 pass "title 和 priority 正确"
 
-# M3: 不传 title → 默认应用名
-echo -n "M3 title 默认应用名..."
+# M3: 不传 title → 400（title 必填）
+echo -n "M3 缺 title..."
 RESP=$(http_post /message '{"message":"no title"}' "$APP_TOKEN")
-assert_json '.title' 'Send Test App' "$RESP"
-pass "title 默认为应用名"
+assert_http_code "$RESP" "400"
+assert_json '.errorCode' '400' "$RESP"
+assert_contains 'title' "$RESP"
+pass "缺 title 返回 400"
 
 # M4: 不传 priority → 默认应用 defaultPriority
 echo -n "M4 priority 默认值..."
-RESP=$(http_post /message '{"message":"no prio"}' "$APP_TOKEN")
+RESP=$(http_post /message '{"message":"no prio","title":"t"}' "$APP_TOKEN")
 assert_json '.priority' '0' "$RESP"
 pass "priority 默认为 0"
 
 # M5: 带 extras
 echo -n "M5 extras..."
-RESP=$(http_post /message '{"message":"x","extras":{"a::b::c":{"v":1}}}' "$APP_TOKEN")
+RESP=$(http_post /message '{"message":"x","title":"t","extras":{"a::b::c":{"v":1}}}' "$APP_TOKEN")
 assert_http_code "$RESP" "200"
 pass "extras 接受"
 
 # M6: clientToken 发消息（需 appid）
 echo -n "M6 clientToken 发消息..."
-RESP=$(http_post /message "{\"message\":\"from client\",\"appid\":$APP_ID}" "$ADMIN_TOKEN")
+RESP=$(http_post /message "{\"message\":\"from client\",\"title\":\"t\",\"appid\":$APP_ID}" "$ADMIN_TOKEN")
 assert_http_code "$RESP" "200"
 pass "clientToken 发消息成功"
 
 # M7: markdown 内容
 echo -n "M7 markdown..."
-RESP=$(http_post /message '{"message":"**bold** and [link](http://x)"}' "$APP_TOKEN")
+RESP=$(http_post /message '{"message":"**bold** and [link](http://x)","title":"md"}' "$APP_TOKEN")
 assert_http_code "$RESP" "200"
 pass "markdown 接受"
 
@@ -91,27 +93,33 @@ pass "无认证返回 401"
 
 # M14: appToken 传 appid 被忽略
 echo -n "M14 appToken 忽略 appid..."
-RESP=$(http_post /message '{"message":"hi","appid":999}' "$APP_TOKEN")
+RESP=$(http_post /message '{"message":"hi","title":"t","appid":999}' "$APP_TOKEN")
 assert_http_code "$RESP" "200"
 pass "appToken 忽略 body appid"
 
 # M15: priority 负数（无校验）
 echo -n "M15 priority 负数..."
-RESP=$(http_post /message '{"message":"neg","priority":-1}' "$APP_TOKEN")
+RESP=$(http_post /message '{"message":"neg","title":"t","priority":-1}' "$APP_TOKEN")
 assert_http_code "$RESP" "200"
 pass "负数 priority 不报错"
 
 # M16: priority 超大
 echo -n "M16 priority 超大..."
-RESP=$(http_post /message '{"message":"big","priority":999999}' "$APP_TOKEN")
+RESP=$(http_post /message '{"message":"big","title":"t","priority":999999}' "$APP_TOKEN")
 assert_http_code "$RESP" "200"
 pass "超大 priority 不报错"
 
-# M18: title 纯空格 → 默认应用名
-echo -n "M18 title 纯空格..."
+# M18: title 纯空格/纯空白 → 400（title 必填，空白视同缺失）
+echo -n "M18 title 纯空白..."
 RESP=$(http_post /message '{"message":"x","title":"   "}' "$APP_TOKEN")
-assert_json '.title' 'Send Test App' "$RESP"
-pass "纯空格 title 默认应用名"
+assert_http_code "$RESP" "400"
+assert_json '.errorCode' '400' "$RESP"
+assert_contains 'title' "$RESP"
+# 制表符/换行等 Unicode 空白组合同样拒绝（JSON \t\n 转义）
+RESP=$(http_post /message '{"message":"x","title":"\t\n "}' "$APP_TOKEN")
+assert_http_code "$RESP" "400"
+assert_contains 'title' "$RESP"
+pass "纯空白 title 返回 400"
 
 
 echo "=== Message 发送: 全部 PASS ==="

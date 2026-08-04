@@ -18,7 +18,7 @@ read -r APP_ID APP_TOKEN <<< "$(create_app "$ADMIN_TOKEN" "Cascade Test App")"
 
 # 发 3 条消息
 for i in 1 2 3; do
-  http_post /message "{\"message\":\"msg $i\"}" "$APP_TOKEN" > /dev/null
+  http_post /message "{\"message\":\"msg $i\",\"title\":\"msg\"}" "$APP_TOKEN" > /dev/null
 done
 
 # 确认有 3 条消息

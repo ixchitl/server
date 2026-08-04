@@ -14,7 +14,7 @@ APP_TOKEN=$(create_app_token "$ADMIN_TOKEN" "Page Test App")
 
 # 发 5 条消息
 for i in 1 2 3 4 5; do
-  http_post /message "{\"message\":\"page test $i\"}" "$APP_TOKEN" > /dev/null
+  http_post /message "{\"message\":\"page test $i\",\"title\":\"page\"}" "$APP_TOKEN" > /dev/null
 done
 
 # M19: 默认分页
