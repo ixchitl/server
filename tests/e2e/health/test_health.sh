@@ -15,6 +15,12 @@ RESP=$(curl -s -w '\n%{http_code}' "$BASE/health")
 assert_http_code "$RESP" "200"
 assert_json '.health' 'green' "$RESP"
 assert_json '.database' 'green' "$RESP"
+assert_json_not_empty '.version' "$RESP"
+V=$(curl -s "$BASE/version" | jq -r '.version')
+assert_json '.version' "$V" "$RESP"
+assert_json '.uptime > 0' 'true' "$RESP"
+assert_json '.version | type' 'string' "$RESP"
+assert_json '.uptime | type' 'number' "$RESP"
 pass "health=green database=green"
 
 # H3: 带 token 访问（不校验认证）

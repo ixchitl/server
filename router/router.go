@@ -90,7 +90,7 @@ func Create(db *database.GormDatabase, vInfo *model.VersionInfo, conf *config.Co
 		CrossOrigin:  http.NewCrossOriginProtection(),
 	}
 	messageHandler := api.MessageAPI{Notifier: streamHandler, DB: db}
-	healthHandler := api.HealthAPI{DB: db}
+	healthHandler := api.NewHealthAPI(db, vInfo.Version)
 	clientHandler := api.ClientAPI{
 		DB:            db,
 		ImageDir:      conf.UploadedImagesDir,
