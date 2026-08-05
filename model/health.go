@@ -16,6 +16,16 @@ type Health struct {
 	// required: true
 	// example: green
 	Database string `json:"database"`
+	// The time the server has been running.
+	//
+	// required: true
+	// example: 50080
+	Uptime int64 `json:"uptime"`
+	// The version of the server.
+	//
+	// required: true
+	// example: 2.2.0
+	Version string `json:"version"`
 }
 
 const (
